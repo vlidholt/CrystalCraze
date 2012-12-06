@@ -8,24 +8,34 @@ var kBoardWidth = 8;
 var kBoardHeight = 10;
 var kNumTotalGems = kBoardWidth * kBoardHeight;
 var kTimeBetweenGemAdds = 8;
-var kTotalGameTime = 1000*10;
+var kTotalGameTime = 1000*60;
 var kIntroTime = 1800;
 var kNumRemovalFrames = 15;
+var kDelayBeforeHint = 3000;
 
 var kGameOverGemSpeed = 0.1;
 var kGameOverGemAcceleration = 0.005;
+
 
 var gFallingGems;
 var gBoard;
 var gBoardSprites;
 var gNumGemsInColumn;
 var gTimeSinceAddInColumn;
+
 var gGameLayer;
 var gParticleLayer;
+var gHintLayer;
+
 var gTimer;
+
 var gStartTime;
+var gLastMoveTime;
+var gIsDisplayingHint;
+
 var gBoardChangedSinceEvaluation;
 var gPossibleMove;
+
 var gIsGameOver;
 var gGameOverGems;
 
@@ -124,11 +134,13 @@ function removeConnectedGems(x,y)
 			gParticleLayer.addChild(particle);
 		}
 	}
+
+	var d = new Date();
+	gLastMoveTime = d.getTime();
 }
 
 function removeMarkedGems()
 {
-	var changed = false;
 	// Iterate through the board
 	for (var x = 0; x < kBoardWidth; x++)
 	{
@@ -138,8 +150,6 @@ function removeMarkedGems()
 
 			if (gBoard[i] < -1)
 			{
-				changed = true;
-
 				// Increase the count for negative crystal types
 				gBoard[i]++;
 				if (gBoard[i] == -1)
@@ -177,8 +187,6 @@ function removeMarkedGems()
 			}
 		}
 	}
-
-	if (changed) debugPrintBoard();
 }
 
 function getGemType(x, y)
@@ -319,6 +327,36 @@ function updateGameOver()
 	}
 }
 
+function displayHint()
+{
+	gIsDisplayingHint = true;
+
+	var idx = findMove();
+	var x = idx % kBoardWidth;
+	var y = Math.floor(idx/kBoardWidth);
+
+	var connected = findConnectedGems(x,y);
+
+	for (var i = 0; i < connected.length; i++)
+	{
+		var idx = connected[i];
+		var x = idx % kBoardWidth;
+		var y = Math.floor(idx/kBoardWidth);
+
+		var actionFadeIn = cc.FadeIn.create(0.5);
+		var actionFadeOut = cc.FadeOut.create(0.5);
+		var actionSeq = cc.Sequence.create(actionFadeIn, actionFadeOut);
+		var action = cc.RepeatForever.create(actionSeq);
+
+		var hintSprite = cc.Sprite.create("crystals/hint.png");
+		hintSprite.setOpacity(0);
+		hintSprite.setPosition(cc.p(x*kGemSize, y*kGemSize));
+		hintSprite.setAnchorPoint(cc.p(0, 0));
+		gHintLayer.addChild(hintSprite);
+		hintSprite.runAction(action);
+	}
+}
+
 function debugPrintBoard()
 {
 	for (var y = kBoardHeight-1; y >= 0; y--)
@@ -337,6 +375,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 	setupBoard();
 
 	gIsGameOver = false;
+	gIsDisplayingHint = false;
 	
 	// Forward relevant touch events to controller (this)
     this.rootNode.onTouchesBegan = function( touches, event) {
@@ -356,6 +395,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 
     var d = new Date();
     gStartTime = d.getTime() + kIntroTime;
+    gLastMoveTime = d.getTime();
 
     // Schedule callback
     this.rootNode.onUpdate = function(dt) {
@@ -368,8 +408,11 @@ GameScene.prototype.onDidLoadFromCCB = function()
     //gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
     gParticleLayer = cc.Node.create();
 
+    gHintLayer = cc.Node.create();
+
     this.gameLayer.addChild(gParticleLayer, 0);
     this.gameLayer.addChild(gGameLayer, 1);
+    this.gameLayer.addChild(gHintLayer, 2);
     //gGameLayer = this.gameLayer;
 
     // Setup callback for completed animations
@@ -385,6 +428,9 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 
 	if (!gIsGameOver)
 	{
+		gHintLayer.removeAllChildren(true);
+		gIsDisplayingHint = false;
+
 		removeConnectedGems(x,y);
 	}
 };
@@ -494,6 +540,10 @@ GameScene.prototype.onUpdate = function(dt)
 			this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
 			gIsGameOver = true;
 		}
+		else if (currentTime - gLastMoveTime > kDelayBeforeHint && !gIsDisplayingHint)
+		{
+			displayHint();
+		}
 	}
 	else
 	{
@@ -504,7 +554,6 @@ GameScene.prototype.onUpdate = function(dt)
 
 GameScene.prototype.onAnimationComplete = function()
 {
-	cc.log("Animation complete!");
 	if (gIsGameOver)
 	{
 		var scene = cc.BuilderReader.loadAsScene("MainScene.ccbi");
