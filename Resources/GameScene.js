@@ -10,7 +10,7 @@ var kNumTotalGems = kBoardWidth * kBoardHeight;
 var kTimeBetweenGemAdds = 8;
 var kTotalGameTime = 1000*60;
 var kIntroTime = 1800;
-var kNumRemovalFrames = 15;
+var kNumRemovalFrames = 8;
 var kDelayBeforeHint = 3000;
 
 var kGameOverGemSpeed = 0.1;
@@ -311,6 +311,8 @@ function createGameOver()
 			}
 		}
 	}
+
+	gHintLayer.removeAllChildren(true);
 }
 
 function updateGameOver()
@@ -423,6 +425,8 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 {
 	var loc = touches[0].getLocation();
 
+	loc = cc.pSub(loc, this.gameLayer.getPosition());
+
 	var x = Math.floor(loc.x/kGemSize);
 	var y = Math.floor(loc.y/kGemSize);
 
@@ -474,7 +478,7 @@ GameScene.prototype.onUpdate = function(dt)
 			{
 				var gem = column[i];
 
-				gem.ySpeed += 0.03;
+				gem.ySpeed += 0.06;
 				gem.ySpeed *= 0.99;
 				gem.yPos -= gem.ySpeed;
 
