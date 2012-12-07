@@ -10,24 +10,32 @@ var kNumTotalGems = kBoardWidth * kBoardHeight;
 var kTimeBetweenGemAdds = 8;
 var kTotalGameTime = 1000*60;
 var kIntroTime = 1800;
-var kNumRemovalFrames = 15;
+var kNumRemovalFrames = 8;
 var kDelayBeforeHint = 3000;
 
 var kGameOverGemSpeed = 0.1;
 var kGameOverGemAcceleration = 0.005;
+
 
 var gFallingGems;
 var gBoard;
 var gBoardSprites;
 var gNumGemsInColumn;
 var gTimeSinceAddInColumn;
+
 var gGameLayer;
 var gParticleLayer;
+var gHintLayer;
+
 var gTimer;
+
 var gStartTime;
 var gLastMoveTime;
+var gIsDisplayingHint;
+
 var gBoardChangedSinceEvaluation;
 var gPossibleMove;
+
 var gIsGameOver;
 var gGameOverGems;
 
@@ -133,7 +141,6 @@ function removeConnectedGems(x,y)
 
 function removeMarkedGems()
 {
-	var changed = false;
 	// Iterate through the board
 	for (var x = 0; x < kBoardWidth; x++)
 	{
@@ -143,8 +150,6 @@ function removeMarkedGems()
 
 			if (gBoard[i] < -1)
 			{
-				changed = true;
-
 				// Increase the count for negative crystal types
 				gBoard[i]++;
 				if (gBoard[i] == -1)
@@ -182,8 +187,6 @@ function removeMarkedGems()
 			}
 		}
 	}
-
-	if (changed) debugPrintBoard();
 }
 
 function getGemType(x, y)
@@ -308,6 +311,8 @@ function createGameOver()
 			}
 		}
 	}
+
+	gHintLayer.removeAllChildren(true);
 }
 
 function updateGameOver()
@@ -321,6 +326,36 @@ function updateGameOver()
 		gem.ySpeed -= kGameOverGemAcceleration;
 
 		gem.sprite.setPosition(gem.xPos*kGemSize, gem.yPos*kGemSize);
+	}
+}
+
+function displayHint()
+{
+	gIsDisplayingHint = true;
+
+	var idx = findMove();
+	var x = idx % kBoardWidth;
+	var y = Math.floor(idx/kBoardWidth);
+
+	var connected = findConnectedGems(x,y);
+
+	for (var i = 0; i < connected.length; i++)
+	{
+		var idx = connected[i];
+		var x = idx % kBoardWidth;
+		var y = Math.floor(idx/kBoardWidth);
+
+		var actionFadeIn = cc.FadeIn.create(0.5);
+		var actionFadeOut = cc.FadeOut.create(0.5);
+		var actionSeq = cc.Sequence.create(actionFadeIn, actionFadeOut);
+		var action = cc.RepeatForever.create(actionSeq);
+
+		var hintSprite = cc.Sprite.create("crystals/hint.png");
+		hintSprite.setOpacity(0);
+		hintSprite.setPosition(cc.p(x*kGemSize, y*kGemSize));
+		hintSprite.setAnchorPoint(cc.p(0, 0));
+		gHintLayer.addChild(hintSprite);
+		hintSprite.runAction(action);
 	}
 }
 
@@ -342,6 +377,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 	setupBoard();
 
 	gIsGameOver = false;
+	gIsDisplayingHint = false;
 	
 	// Forward relevant touch events to controller (this)
     this.rootNode.onTouchesBegan = function( touches, event) {
@@ -361,6 +397,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 
     var d = new Date();
     gStartTime = d.getTime() + kIntroTime;
+    gLastMoveTime = d.getTime();
 
     // Schedule callback
     this.rootNode.onUpdate = function(dt) {
@@ -373,8 +410,11 @@ GameScene.prototype.onDidLoadFromCCB = function()
     //gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
     gParticleLayer = cc.Node.create();
 
+    gHintLayer = cc.Node.create();
+
     this.gameLayer.addChild(gParticleLayer, 0);
     this.gameLayer.addChild(gGameLayer, 1);
+    this.gameLayer.addChild(gHintLayer, 2);
     //gGameLayer = this.gameLayer;
 
     // Setup callback for completed animations
@@ -385,11 +425,16 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 {
 	var loc = touches[0].getLocation();
 
+	loc = cc.pSub(loc, this.gameLayer.getPosition());
+
 	var x = Math.floor(loc.x/kGemSize);
 	var y = Math.floor(loc.y/kGemSize);
 
 	if (!gIsGameOver)
 	{
+		gHintLayer.removeAllChildren(true);
+		gIsDisplayingHint = false;
+
 		removeConnectedGems(x,y);
 	}
 };
@@ -433,7 +478,7 @@ GameScene.prototype.onUpdate = function(dt)
 			{
 				var gem = column[i];
 
-				gem.ySpeed += 0.03;
+				gem.ySpeed += 0.06;
 				gem.ySpeed *= 0.99;
 				gem.yPos -= gem.ySpeed;
 
@@ -499,6 +544,10 @@ GameScene.prototype.onUpdate = function(dt)
 			this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
 			gIsGameOver = true;
 		}
+		else if (currentTime - gLastMoveTime > kDelayBeforeHint && !gIsDisplayingHint)
+		{
+			displayHint();
+		}
 	}
 	else
 	{
@@ -509,7 +558,6 @@ GameScene.prototype.onUpdate = function(dt)
 
 GameScene.prototype.onAnimationComplete = function()
 {
-	cc.log("Animation complete!");
 	if (gIsGameOver)
 	{
 		var scene = cc.BuilderReader.loadAsScene("MainScene.ccbi");

@@ -1,5 +1,5 @@
 var ccb_resources = [
-    {type:'image', src:"fonts/scorefont.png"},
+    {type:'image', src:"scorefont.png"},
     {type:'image', src:"crystals/4.png"},
     {type:'ccbi', src:"GameScene.ccbi"},
     {type:'image', src:"mainscene/logo.png"},
@@ -16,6 +16,7 @@ var ccb_resources = [
     {type:'ccbi', src:"MainScene.ccbi"},
     {type:'image', src:"ccbResources/ccbDefaultImages.png"},
     {type:'image', src:"gamescene/header.png"},
+    {type:'image', src:"crystals/hint.png"},
     {type:'image', src:"gamescene/iPhone5-padding.png"},
     {type:'image', src:"gamescene/background.png"},
     {type:'image', src:"mainscene/btn-play-down.png"},
