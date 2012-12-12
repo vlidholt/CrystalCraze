@@ -1,8 +1,3 @@
-//
-// MainScene class
-//
-var GameScene = function(){};
-
 var kGemSize = 40;
 var kBoardWidth = 8;
 var kBoardHeight = 10;
@@ -12,10 +7,17 @@ var kTotalGameTime = 1000*60;
 var kIntroTime = 1800;
 var kNumRemovalFrames = 8;
 var kDelayBeforeHint = 3000;
+var kMaxTimeBetweenConsecutiveMoves = 1000;
 
 var kGameOverGemSpeed = 0.1;
 var kGameOverGemAcceleration = 0.005;
 
+var kBoardTypeGem0 = 0;
+var kBoardTypeGem1 = 1;
+var kBoardTypeGem2 = 2;
+var kBoardTypeGem3 = 3;
+var kBoardTypeGem4 = 4;
+var kBoardTypePup0 = 5;
 
 var gFallingGems;
 var gBoard;
@@ -23,9 +25,17 @@ var gBoardSprites;
 var gNumGemsInColumn;
 var gTimeSinceAddInColumn;
 
+var gLastTakenGemTime;
+var gNumConsecutiveGems;
+var gIsPowerPlay;
+var gPowerPlayParticles;
+var gPowerPlayLayer;
+
 var gGameLayer;
 var gParticleLayer;
 var gHintLayer;
+var gShimmerLayer;
+var gEffectsLayer;
 
 var gTimer;
 
@@ -38,7 +48,9 @@ var gPossibleMove;
 
 var gIsGameOver;
 var gGameOverGems;
+var gScoreLabel;
 
+//require("GameBoard.js");
 function setupBoard()
 {
 	gBoard = new Array(kNumTotalGems);
@@ -105,17 +117,32 @@ function findConnectedGems(x, y)
 	return connected;
 }
 
-function removeConnectedGems(x,y)
+function removeConnectedGems(x, y)
 {
 	// Check for bounds
 	if (x < 0 || x >= kBoardWidth) return;
 	if (y < 0 || y >= kBoardHeight) return;
 
 	var connected = findConnectedGems(x,y);
+	var removedGems = false;
 
 	if (connected.length >= 3)
 	{
 		gBoardChangedSinceEvaluation = true;
+		removedGems = true;
+
+		addScore(100*connected.length);
+
+		var idxPup = -1;
+		var pupX;
+		var pupY;
+		if (connected.length >= 6)
+		{
+			// Add power-up
+			idxPup = connected[Math.floor(Math.random()*connected.length)];
+			var pupX = idxPup % kBoardWidth;
+			var pupY = Math.floor(idxPup/kBoardWidth);
+		}
 
 		for (var i = 0; i < connected.length; i++)
 		{
@@ -132,11 +159,146 @@ function removeConnectedGems(x,y)
 			particle.setPosition(gemX * kGemSize+kGemSize/2, gemY*kGemSize+kGemSize/2);
 			particle.setAutoRemoveOnFinish(true);
 			gParticleLayer.addChild(particle);
+
+			// Add power-up
+			if (idx == idxPup)
+			{
+				gBoard[idx] = kBoardTypePup0;
+
+				var sprt = cc.Sprite.create("crystals/bomb.png");
+				sprt.setPosition(cc.p(gemX*kGemSize, gemY*kGemSize));
+				sprt.setAnchorPoint(cc.p(0,0));
+				sprt.setOpacity(0);
+				sprt.runAction(cc.FadeIn.create(0.4));
+
+				var sprtGlow = cc.Sprite.create("crystals/bomb-hi.png");
+				sprtGlow.setAnchorPoint(cc.p(0,0));
+				sprtGlow.setOpacity(0);
+				sprtGlow.runAction(cc.RepeatForever.create(cc.Sequence.create(cc.FadeIn.create(0.4),cc.FadeOut.create(0.4))));
+				sprt.addChild(sprtGlow);
+
+				gBoardSprites[idx] = sprt;
+				gGameLayer.addChild(sprt);
+			}
+			else if (idxPup != -1)
+			{
+				// Animate effect for power-up
+				var sprtLight = cc.Sprite.create("crystals/bomb-light.png");
+				sprtLight.setPosition(cc.p(gemX*kGemSize+kGemSize/2, gemY*kGemSize+kGemSize/2));
+				sprtLight.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+				gEffectsLayer.addChild(sprtLight);
+
+				var movAction = cc.MoveTo.create(0.2, cc.p(pupX*kGemSize+kGemSize/2, pupY*kGemSize+kGemSize/2));
+				var seqAction = cc.Sequence.create(movAction, cc.CallFunc.create(onRemoveFromParent, this));
+
+				sprtLight.runAction(seqAction);
+			}
 		}
 	}
 
 	var d = new Date();
 	gLastMoveTime = d.getTime();
+
+	return removedGems;
+}
+
+function activatePowerUp(x, y)
+{
+	// Check for bounds
+	if (x < 0 || x >= kBoardWidth) return;
+	if (y < 0 || y >= kBoardHeight) return;
+
+	var removedGems = false;
+
+	var idx = x + y * kBoardWidth;
+	if (gBoard[idx] == kBoardTypePup0)
+	{
+		// Activate bomb
+		removedGems = true;
+
+		addScore(2000);
+
+		gBoard[idx] = -kNumRemovalFrames;
+		gGameLayer.removeChild(gBoardSprites[idx], true);
+		gBoardSprites[idx] = null;
+
+		// Remove a horizontal line
+		for (var xRemove = 0; xRemove < kBoardWidth; xRemove++)
+		{
+			var idxRemove = xRemove + y * kBoardWidth;
+			if (gBoard[idxRemove] >= 0 && gBoard[idxRemove] < 5)
+			{
+				gBoard[idxRemove] = -kNumRemovalFrames;
+				gGameLayer.removeChild(gBoardSprites[idxRemove], true);
+				gBoardSprites[idxRemove] = null;
+			}
+		}
+
+		// Remove a vertical line
+		for (var yRemove = 0; yRemove < kBoardHeight; yRemove++)
+		{
+			var idxRemove = x + yRemove * kBoardWidth;
+			if (gBoard[idxRemove] >= 0 && gBoard[idxRemove] < 5)
+			{
+				gBoard[idxRemove] = -kNumRemovalFrames;
+				gGameLayer.removeChild(gBoardSprites[idxRemove], true);
+				gBoardSprites[idxRemove] = null;
+			}
+		}
+
+		// Add particle effects
+		var hp = cc.ParticleSystem.create("particles/taken-hrow.plist");
+		hp.setPosition(cc.p(kBoardWidth/2*kGemSize+kGemSize/2, y*kGemSize+kGemSize/2));
+		hp.setAutoRemoveOnFinish(true);
+		gParticleLayer.addChild(hp);
+
+		var vp = cc.ParticleSystem.create("particles/taken-vrow.plist");
+		vp.setPosition(cc.p(x*kGemSize+kGemSize/2, kBoardHeight/2*kGemSize+kGemSize/2));
+		vp.setAutoRemoveOnFinish(true);
+		gParticleLayer.addChild(vp);
+
+		// Add explo anim
+		var center = cc.p(x*kGemSize+kGemSize/2, y*kGemSize+kGemSize/2);
+
+		// Horizontal
+		var sprtH0 = cc.Sprite.create("crystals/bomb-explo.png");
+		sprtH0.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+		sprtH0.setPosition(center);
+		sprtH0.setScaleX(5);
+		sprtH0.runAction(cc.ScaleTo.create(0.5, 30, 1));
+		sprtH0.runAction(cc.Sequence.create(cc.FadeOut.create(0.5), cc.CallFunc.create(onRemoveFromParent, this)));
+		gEffectsLayer.addChild(sprtH0);
+
+		// Vertical
+		var sprtV0 = cc.Sprite.create("crystals/bomb-explo.png");
+		sprtV0.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+		sprtV0.setPosition(center);
+		sprtV0.setScaleY(5);
+		sprtV0.runAction(cc.ScaleTo.create(0.5, 1, 30));
+		sprtV0.runAction(cc.Sequence.create(cc.FadeOut.create(0.5), cc.CallFunc.create(onRemoveFromParent, this)));
+		gEffectsLayer.addChild(sprtV0);
+
+		// Horizontal
+		var sprtH1 = cc.Sprite.create("crystals/bomb-explo-inner.png");
+		sprtH1.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+		sprtH1.setPosition(center);
+		sprtH1.setScaleX(0.5);
+		sprtH1.runAction(cc.ScaleTo.create(0.5, 8, 1));
+		sprtH1.runAction(cc.Sequence.create(cc.FadeOut.create(0.5), cc.CallFunc.create(onRemoveFromParent, this)));
+		gEffectsLayer.addChild(sprtH1);
+
+		// Vertical
+		var sprtV1 = cc.Sprite.create("crystals/bomb-explo-inner.png");
+		sprtV1.setRotation(90);
+		sprtV1.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+		sprtV1.setPosition(center);
+		sprtV1.setScaleY(0.5);
+		sprtV1.runAction(cc.ScaleTo.create(0.5, 8, 1));
+		sprtV1.runAction(cc.Sequence.create(cc.FadeOut.create(0.5), cc.CallFunc.create(onRemoveFromParent, this)));
+		gEffectsLayer.addChild(sprtV1);	
+	}
+
+	return removedGems;
 }
 
 function removeMarkedGems()
@@ -313,6 +475,8 @@ function createGameOver()
 	}
 
 	gHintLayer.removeAllChildren(true);
+
+	removeShimmer();
 }
 
 function updateGameOver()
@@ -371,6 +535,149 @@ function debugPrintBoard()
 		+gNumGemsInColumn[4]+" "+gNumGemsInColumn[5]+" "+gNumGemsInColumn[6]+" "+gNumGemsInColumn[7]);
 }
 
+function setupShimmer()
+{
+	for (var i = 0; i < 2; i++)
+	{
+		var sprt = cc.Sprite.create("gamescene/bg-shimmer-"+i+".png");
+
+		var seqRot = null;
+		var seqMov = null;
+		var seqSca = null;
+
+		for (var j = 0; j < 10; j++)
+		{
+			var time = Math.random()*10+5;
+			var x = kBoardWidth*kGemSize/2;
+			var y = Math.random()*kBoardHeight*kGemSize;
+			var rot = Math.random()*180-90;
+			var scale = Math.random()*3 + 3;
+
+			var actionRot = cc.EaseInOut.create(cc.RotateTo.create(time, rot), 2);
+			var actionMov = cc.EaseInOut.create(cc.MoveTo.create(time, cc.p(x,y)), 2);
+			var actionSca = cc.ScaleTo.create(time, scale);
+
+			if (!seqRot)
+			{
+				seqRot = actionRot;
+				seqMov = actionMov;
+				seqSca = actionSca;
+			}
+			else
+			{
+				seqRot = cc.Sequence.create(seqRot, actionRot);
+				seqMov = cc.Sequence.create(seqMov, actionMov);
+				seqSca = cc.Sequence.create(seqSca, actionSca);
+			}
+		}
+
+		var x = kBoardWidth*kGemSize/2;
+		var y = Math.random()*kBoardHeight*kGemSize;
+		var rot = Math.random()*180-90;
+
+		sprt.setPosition(cc.p(x,y));
+		sprt.setRotation(rot);
+
+		sprt.setPosition(cc.p(kBoardWidth*kGemSize/2, kBoardHeight*kGemSize/2));
+		sprt.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+		sprt.setScale(3);
+
+		gShimmerLayer.addChild(sprt);
+		sprt.setOpacity(0);
+		sprt.runAction(cc.RepeatForever.create(seqRot));
+		sprt.runAction(cc.RepeatForever.create(seqMov));
+		sprt.runAction(cc.RepeatForever.create(seqSca));
+
+		sprt.runAction(cc.FadeIn.create(2));
+	}
+}
+
+function removeShimmer()
+{
+	var children = gShimmerLayer.getChildren();
+	for (var i = 0; i < children.length; i++)
+	{
+		children[i].runAction(cc.FadeOut.create(1));
+	}
+}
+
+function updateSparkle()
+{
+	if (Math.random() > 0.1) return;
+	var idx = Math.floor(Math.random()*kNumTotalGems);
+	var gemSprite = gBoardSprites[idx];
+	if (gBoard[idx] < 0 || gBoard[idx] >= 5) return;
+	if (!gemSprite) return;
+
+	if (gemSprite.getChildren().length > 0) return;
+
+	sprite = cc.Sprite.create("gamescene/sparkle.png");
+	sprite.runAction(cc.RepeatForever.create(cc.RotateBy.create(3, 360)));
+
+	sprite.setOpacity(0);
+
+	sprite.runAction(cc.Sequence.create(
+		cc.FadeIn.create(0.5),
+		cc.FadeOut.create(2),
+		cc.CallFunc.create(onRemoveFromParent, this)));
+
+	sprite.setPosition(cc.p(kGemSize*(2/6), kGemSize*(4/6)));
+
+	gemSprite.addChild(sprite);
+}
+
+function onRemoveFromParent(node, value)
+{
+	node.getParent().removeChild(node, true);
+}
+
+function updatePowerPlay()
+{
+	var powerPlay = (gNumConsecutiveGems >= 5);
+	if (powerPlay == gIsPowerPlay) return;
+	
+	if (powerPlay)
+	{
+		// Start power-play
+		gPowerPlayParticles = cc.ParticleSystem.create("particles/power-play.plist");
+		gPowerPlayParticles.setAutoRemoveOnFinish(true);
+		gParticleLayer.addChild(gPowerPlayParticles);
+
+		var contentSize = gGameLayer.getContentSize();
+		gPowerPlayLayer = cc.LayerColor.create(cc.c4b(85, 0, 70, 0), contentSize.width, contentSize.height);
+
+		var action = cc.Sequence.create(cc.FadeIn.create(0.25), cc.FadeOut.create(0.25));
+		gPowerPlayLayer.runAction(cc.RepeatForever.create(action));
+		gPowerPlayLayer.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
+
+		gEffectsLayer.addChild(gPowerPlayLayer);
+	}
+	else
+	{
+		// Stop power-play
+		if (gPowerPlayParticles)
+		{
+			gPowerPlayParticles.stopSystem();
+			gPowerPlayLayer.stopAllActions();
+			gPowerPlayLayer.runAction(cc.Sequence.create(cc.FadeOut.create(0.5), cc.CallFunc.create(onRemoveFromParent, this)));
+		}
+	}
+
+	gIsPowerPlay = powerPlay;
+}
+
+function addScore(score)
+{
+	if (gIsPowerPlay) score *= 3;
+	gScore += score;
+	gScoreLabel.setString(""+gScore);
+}
+
+//
+// MainScene class
+//
+var GameScene = function(){};
+
 GameScene.prototype.onDidLoadFromCCB = function()
 {	
 	// Setup board
@@ -398,6 +705,10 @@ GameScene.prototype.onDidLoadFromCCB = function()
     var d = new Date();
     gStartTime = d.getTime() + kIntroTime;
     gLastMoveTime = d.getTime();
+    gNumConsecutiveGems = 0;
+    gIsPowerPlay = false;
+
+    gScore = 0;
 
     // Schedule callback
     this.rootNode.onUpdate = function(dt) {
@@ -407,18 +718,29 @@ GameScene.prototype.onDidLoadFromCCB = function()
 
     // TODO: Make into batch node
     gGameLayer = cc.Node.create();
+    gGameLayer.setContentSize(this.gameLayer.getContentSize());
     //gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
     gParticleLayer = cc.Node.create();
-
     gHintLayer = cc.Node.create();
+    gShimmerLayer = cc.Node.create();
+    gEffectsLayer = cc.Node.create();
 
-    this.gameLayer.addChild(gParticleLayer, 0);
-    this.gameLayer.addChild(gGameLayer, 1);
-    this.gameLayer.addChild(gHintLayer, 2);
+    this.gameLayer.addChild(gShimmerLayer, -1);
+    this.gameLayer.addChild(gParticleLayer, 1);
+    this.gameLayer.addChild(gGameLayer, 0);
+    this.gameLayer.addChild(gHintLayer, 3);
+    this.gameLayer.addChild(gEffectsLayer, 2);
+
     //gGameLayer = this.gameLayer;
 
     // Setup callback for completed animations
 	this.rootNode.animationManager.setCompletedAnimationCallback(this, this.onAnimationComplete);
+
+	setupShimmer();
+	//setupSparkle();
+
+	// Setup score label
+	gScoreLabel = this.lblScore;
 };
 
 GameScene.prototype.onTouchesBegan = function(touches, event)
@@ -435,7 +757,22 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 		gHintLayer.removeAllChildren(true);
 		gIsDisplayingHint = false;
 
-		removeConnectedGems(x,y);
+		if (activatePowerUp(x,y) ||
+			removeConnectedGems(x,y))
+		{
+			// Player did a valid move
+			gNumConsecutiveGems++;
+		}
+		else
+		{
+			if (!gIsPowerPlay)
+			{
+				gNumConsecutiveGems = 0;
+			}
+		}
+
+		var d = new Date();
+		gLastMoveTime = d.getTime();
 	}
 };
 
@@ -489,6 +826,12 @@ GameScene.prototype.onUpdate = function(dt)
 
 					// Insert into board
 					var y = gNumGemsInColumn[x];
+
+					if (gBoard[x + y*kBoardWidth] != -1)
+					{
+						cc.log("Warning! Overwriting board idx: "+x + y*kBoardWidth+" type: "+gBoard[x + y*kBoardWidth]);
+					}
+
 					gBoard[x + y*kBoardWidth] = gem.gemType;
 					gBoardSprites[x + y*kBoardWidth] = gem.sprite;
 
@@ -537,12 +880,23 @@ GameScene.prototype.onUpdate = function(dt)
 
 		gTimer.setPercentage(timeLeft);
 
+		// Update consecutive moves / powerplay
+		if (currentTime - gLastMoveTime > kMaxTimeBetweenConsecutiveMoves)
+		{
+			gNumConsecutiveGems = 0;
+		}
+		updatePowerPlay();
+
+		// Update sparkles
+		updateSparkle();
+
 		// Check for game over
 		if (timeLeft == 0)
 		{
 			createGameOver();
 			this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
 			gIsGameOver = true;
+			gLastScore = gScore;
 		}
 		else if (currentTime - gLastMoveTime > kDelayBeforeHint && !gIsDisplayingHint)
 		{
@@ -567,6 +921,7 @@ GameScene.prototype.onAnimationComplete = function()
 
 GameScene.prototype.onPauseClicked = function(dt)
 {
-	var scene = cc.BuilderReader.loadAsScene("MainScene.ccbi");
-    cc.Director.getInstance().replaceScene(scene);	
+	createGameOver();
+	this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
+	gIsGameOver = true;
 };
