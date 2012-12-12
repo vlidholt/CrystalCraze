@@ -32,7 +32,7 @@ MainScene.prototype.onDidLoadFromCCB = function()
     this.rootNode.schedule(this.rootNode.onUpdate);
 
     // Load sprite sheets
-    cc.SpriteFrameCache.getInstance().addSpriteFrames("crystals.plist");
+    //cc.SpriteFrameCache.getInstance().addSpriteFrames("crystals.plist");
 };
 
 // Create callback for button
