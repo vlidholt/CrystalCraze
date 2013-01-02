@@ -49,6 +49,7 @@ var gPossibleMove;
 var gIsGameOver;
 var gGameOverGems;
 var gScoreLabel;
+var gEndTimerStarted;
 
 //require("GameBoard.js");
 function setupBoard()
@@ -165,13 +166,13 @@ function removeConnectedGems(x, y)
 			{
 				gBoard[idx] = kBoardTypePup0;
 
-				var sprt = cc.Sprite.create("crystals/bomb.png");
+				var sprt = cc.Sprite.createWithSpriteFrameName("crystals/bomb.png");
 				sprt.setPosition(cc.p(gemX*kGemSize, gemY*kGemSize));
 				sprt.setAnchorPoint(cc.p(0,0));
 				sprt.setOpacity(0);
 				sprt.runAction(cc.FadeIn.create(0.4));
 
-				var sprtGlow = cc.Sprite.create("crystals/bomb-hi.png");
+				var sprtGlow = cc.Sprite.createWithSpriteFrameName("crystals/bomb-hi.png");
 				sprtGlow.setAnchorPoint(cc.p(0,0));
 				sprtGlow.setOpacity(0);
 				sprtGlow.runAction(cc.RepeatForever.create(cc.Sequence.create(cc.FadeIn.create(0.4),cc.FadeOut.create(0.4))));
@@ -183,7 +184,7 @@ function removeConnectedGems(x, y)
 			else if (idxPup != -1)
 			{
 				// Animate effect for power-up
-				var sprtLight = cc.Sprite.create("crystals/bomb-light.png");
+				var sprtLight = cc.Sprite.createWithSpriteFrameName("crystals/bomb-light.png");
 				sprtLight.setPosition(cc.p(gemX*kGemSize+kGemSize/2, gemY*kGemSize+kGemSize/2));
 				sprtLight.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
 				gEffectsLayer.addChild(sprtLight);
@@ -194,6 +195,10 @@ function removeConnectedGems(x, y)
 				sprtLight.runAction(seqAction);
 			}
 		}
+	}
+	else
+	{
+		gAudioEngine.playEffect("sounds/miss.caf");
 	}
 
 	var d = new Date();
@@ -214,6 +219,8 @@ function activatePowerUp(x, y)
 	if (gBoard[idx] == kBoardTypePup0)
 	{
 		// Activate bomb
+		gAudioEngine.playEffect("sounds/powerup.caf");
+
 		removedGems = true;
 
 		addScore(2000);
@@ -261,7 +268,7 @@ function activatePowerUp(x, y)
 		var center = cc.p(x*kGemSize+kGemSize/2, y*kGemSize+kGemSize/2);
 
 		// Horizontal
-		var sprtH0 = cc.Sprite.create("crystals/bomb-explo.png");
+		var sprtH0 = cc.Sprite.createWithSpriteFrameName("crystals/bomb-explo.png");
 		sprtH0.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
 		sprtH0.setPosition(center);
 		sprtH0.setScaleX(5);
@@ -270,7 +277,7 @@ function activatePowerUp(x, y)
 		gEffectsLayer.addChild(sprtH0);
 
 		// Vertical
-		var sprtV0 = cc.Sprite.create("crystals/bomb-explo.png");
+		var sprtV0 = cc.Sprite.createWithSpriteFrameName("crystals/bomb-explo.png");
 		sprtV0.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
 		sprtV0.setPosition(center);
 		sprtV0.setScaleY(5);
@@ -279,7 +286,7 @@ function activatePowerUp(x, y)
 		gEffectsLayer.addChild(sprtV0);
 
 		// Horizontal
-		var sprtH1 = cc.Sprite.create("crystals/bomb-explo-inner.png");
+		var sprtH1 = cc.Sprite.createWithSpriteFrameName("crystals/bomb-explo-inner.png");
 		sprtH1.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
 		sprtH1.setPosition(center);
 		sprtH1.setScaleX(0.5);
@@ -288,7 +295,7 @@ function activatePowerUp(x, y)
 		gEffectsLayer.addChild(sprtH1);
 
 		// Vertical
-		var sprtV1 = cc.Sprite.create("crystals/bomb-explo-inner.png");
+		var sprtV1 = cc.Sprite.createWithSpriteFrameName("crystals/bomb-explo-inner.png");
 		sprtV1.setRotation(90);
 		sprtV1.setBlendFunc(gl.SRC_ALPHA, gl.ONE);
 		sprtV1.setPosition(center);
@@ -377,7 +384,7 @@ function setGemType(x, y, newType)
 	// Remove old gem and insert a new one
 	gGameLayer.removeChild(gBoardSprites[idx], true);
 
-	var gemSprite = cc.Sprite.create("crystals/"+newType+".png");
+	var gemSprite = cc.Sprite.createWithSpriteFrameName("crystals/"+newType+".png");
 	gemSprite.setPosition(cc.p(x * kGemSize, y * kGemSize));
 	gemSprite.setAnchorPoint(cc.p(0,0));
 
@@ -514,7 +521,7 @@ function displayHint()
 		var actionSeq = cc.Sequence.create(actionFadeIn, actionFadeOut);
 		var action = cc.RepeatForever.create(actionSeq);
 
-		var hintSprite = cc.Sprite.create("crystals/hint.png");
+		var hintSprite = cc.Sprite.createWithSpriteFrameName("crystals/hint.png");
 		hintSprite.setOpacity(0);
 		hintSprite.setPosition(cc.p(x*kGemSize, y*kGemSize));
 		hintSprite.setAnchorPoint(cc.p(0, 0));
@@ -537,9 +544,11 @@ function debugPrintBoard()
 
 function setupShimmer()
 {
+	cc.SpriteFrameCache.getInstance().addSpriteFrames("gamescene/shimmer.plist");
+
 	for (var i = 0; i < 2; i++)
 	{
-		var sprt = cc.Sprite.create("gamescene/bg-shimmer-"+i+".png");
+		var sprt = cc.Sprite.createWithSpriteFrameName("gamescene/shimmer/bg-shimmer-"+i+".png");
 
 		var seqRot = null;
 		var seqMov = null;
@@ -707,6 +716,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
     gLastMoveTime = d.getTime();
     gNumConsecutiveGems = 0;
     gIsPowerPlay = false;
+    gEndTimerStarted = false;
 
     gScore = 0;
 
@@ -761,14 +771,15 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 			removeConnectedGems(x,y))
 		{
 			// Player did a valid move
+			var sound = gNumConsecutiveGems;
+			if (sound > 4) sound = 4;
+			gAudioEngine.playEffect("sounds/gem-"+sound+".caf");
+
 			gNumConsecutiveGems++;
 		}
 		else
 		{
-			if (!gIsPowerPlay)
-			{
-				gNumConsecutiveGems = 0;
-			}
+			gNumConsecutiveGems = 0;
 		}
 
 		var d = new Date();
@@ -791,7 +802,7 @@ GameScene.prototype.onUpdate = function(dt)
 			{
 				// A gem should be added to this column!
 				var gemType = Math.floor(Math.random()*5);
-				var gemSprite = cc.Sprite.create("crystals/"+gemType+".png");
+				var gemSprite = cc.Sprite.createWithSpriteFrameName("crystals/"+gemType+".png");
 				gemSprite.setPosition(cc.p(x * kGemSize, kBoardHeight * kGemSize));
 				gemSprite.setAnchorPoint(cc.p(0,0));
 
@@ -807,6 +818,7 @@ GameScene.prototype.onUpdate = function(dt)
 		}
 
 		// Move falling gems
+		var gemLanded = false;
 		for (var x = 0; x < kBoardWidth; x++)
 		{
 			var column = gFallingGems[x];
@@ -822,6 +834,12 @@ GameScene.prototype.onUpdate = function(dt)
 				if (gem.yPos <= gNumGemsInColumn[x])
 				{
 					// The gem hit the ground or a fixed gem
+					if (!gemLanded)
+					{
+						gAudioEngine.playEffect("sounds/tap-"+Math.floor(Math.random()*4)+".caf");
+						gemLanded = true;
+					}
+
 					column.splice(i, 1);
 
 					// Insert into board
@@ -890,12 +908,22 @@ GameScene.prototype.onUpdate = function(dt)
 		// Update sparkles
 		updateSparkle();
 
+		// Check if timer sound should be played
+		if (timeLeft < 6.6 && !gEndTimerStarted)
+		{
+			gAudioEngine.playEffect("sounds/timer.caf");
+			gEndTimerStarted = true;
+		}
+
 		// Check for game over
 		if (timeLeft == 0)
 		{
 			createGameOver();
 			this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
 			gIsGameOver = true;
+			//gAudioEngine.stopAllEffects();
+			cc.log("stopAllEffects not working!");
+			gAudioEngine.playEffect("sounds/endgame.caf");
 			gLastScore = gScore;
 		}
 		else if (currentTime - gLastMoveTime > kDelayBeforeHint && !gIsDisplayingHint)
@@ -924,4 +952,7 @@ GameScene.prototype.onPauseClicked = function(dt)
 	createGameOver();
 	this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
 	gIsGameOver = true;
+	//gAudioEngine.stopAllEffects();
+	cc.log("stopAllEffects not working!");
+	gAudioEngine.playEffect("sounds/endgame.caf");
 };

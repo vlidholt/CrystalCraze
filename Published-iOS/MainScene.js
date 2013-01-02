@@ -3,6 +3,7 @@ var kMenuSelectionPlay = 1;
 var kMenuSelectionAbout = 2;
 
 var gLastScore = 0;
+var gAudioEngine;
 
 //
 // MainScene class
@@ -32,7 +33,11 @@ MainScene.prototype.onDidLoadFromCCB = function()
     this.rootNode.schedule(this.rootNode.onUpdate);
 
     // Load sprite sheets
-    //cc.SpriteFrameCache.getInstance().addSpriteFrames("crystals.plist");
+    cc.SpriteFrameCache.getInstance().addSpriteFrames("crystals.plist");
+
+	// Setup sound
+	gAudioEngine = cc.AudioEngine.getInstance();
+	gAudioEngine.playMusic("sounds/loop.m4a");
 };
 
 // Create callback for button
@@ -40,6 +45,8 @@ MainScene.prototype.onPressPlay = function()
 {
 	this.menuSelection = kMenuSelectionPlay;
 	this.rootNode.animationManager.runAnimationsForSequenceNamed("Outro");
+
+	gAudioEngine.playEffect("sounds/click.caf");
 
 	// Fade out gems
 	for (var i = 0; i < this.fallingGems.length; i++)
@@ -56,6 +63,7 @@ MainScene.prototype.onAnimationComplete = function()
 	{
 		var scene = cc.BuilderReader.loadAsScene("GameScene.ccbi");
     	cc.Director.getInstance().replaceScene(scene);
+    	gAudioEngine.stopMusic();
     }
 };
 
@@ -64,8 +72,8 @@ MainScene.prototype.onUpdate = function()
 	if (Math.random() < 0.02)
 	{
 		var type = Math.floor(Math.random()*5);
-		//var sprt = cc.Sprite.createWithSpriteFrameName("crystals/"+type+".png");
-		var sprt = cc.Sprite.create("crystals/"+type+".png");
+		var sprt = cc.Sprite.createWithSpriteFrameName("crystals/"+type+".png");
+		//var sprt = cc.Sprite.create("crystals/"+type+".png");
 		//var p = cc.ParticleSystem.create("particles/falling-gem.plist");
 
 		var x = Math.random()*this.fallingGemsLayer.getContentSize().width;

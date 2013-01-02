@@ -19,7 +19,26 @@
 	<key>flattenPaths</key>
 	<false/>
 	<key>generatedSpriteSheets</key>
-	<dict/>
+	<dict>
+		<key>crystals</key>
+		<dict>
+			<key>compress</key>
+			<true/>
+			<key>dither</key>
+			<true/>
+			<key>textureFileFormat</key>
+			<integer>2</integer>
+		</dict>
+		<key>gamescene/shimmer</key>
+		<dict>
+			<key>compress</key>
+			<true/>
+			<key>dither</key>
+			<true/>
+			<key>textureFileFormat</key>
+			<integer>5</integer>
+		</dict>
+	</dict>
 	<key>javascriptBased</key>
 	<true/>
 	<key>javascriptMainCCB</key>
