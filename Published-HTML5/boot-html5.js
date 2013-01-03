@@ -12,7 +12,8 @@
         //engineDir:'../../../../cocos2d/',
         SingleEngineFile:'cocos2d-html5.min.js',
         appFiles:[
-          'GameBoard.js',
+          'AboutScene.js',
+    'GameBoard.js',
     'GameScene.js',
     'MainScene.js',
 

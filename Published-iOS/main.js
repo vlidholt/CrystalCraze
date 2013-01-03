@@ -2,6 +2,7 @@
 
 require("jsb_constants.js");
 
+require("AboutScene.js");
 require("GameBoard.js");
 require("GameScene.js");
 require("MainScene.js");

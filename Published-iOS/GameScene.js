@@ -779,10 +779,7 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 		}
 		else
 		{
-			if (!gIsPowerPlay)
-			{
-				gNumConsecutiveGems = 0;
-			}
+			gNumConsecutiveGems = 0;
 		}
 
 		var d = new Date();

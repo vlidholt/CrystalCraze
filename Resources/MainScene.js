@@ -57,6 +57,14 @@ MainScene.prototype.onPressPlay = function()
 	}
 };
 
+MainScene.prototype.onPressAbout = function()
+{
+	gAudioEngine.playEffect("sounds/click.caf");
+
+	var aboutNode = cc.BuilderReader.load("AboutScene");
+	this.rootNode.addChild(aboutNode, 10);
+};
+
 MainScene.prototype.onAnimationComplete = function()
 {
 	if (this.menuSelection == kMenuSelectionPlay)
