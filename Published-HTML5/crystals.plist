@@ -7,7 +7,7 @@
 		<key>crystals/0.png</key>
 		<dict>
 			<key>frame</key>
-			<string>{{41, 85}, {39, 38}}</string>
+			<string>{{1, 167}, {39, 38}}</string>
 			<key>offset</key>
 			<string>{0, 0}</string>
 			<key>rotated</key>
@@ -20,7 +20,7 @@
 		<key>crystals/1.png</key>
 		<dict>
 			<key>frame</key>
-			<string>{{1, 167}, {39, 38}}</string>
+			<string>{{41, 85}, {39, 38}}</string>
 			<key>offset</key>
 			<string>{0, 0}</string>
 			<key>rotated</key>
@@ -46,7 +46,7 @@
 		<key>crystals/3.png</key>
 		<dict>
 			<key>frame</key>
-			<string>{{1, 208}, {39, 38}}</string>
+			<string>{{1, 126}, {39, 38}}</string>
 			<key>offset</key>
 			<string>{0, 0}</string>
 			<key>rotated</key>
@@ -59,7 +59,7 @@
 		<key>crystals/4.png</key>
 		<dict>
 			<key>frame</key>
-			<string>{{1, 126}, {39, 38}}</string>
+			<string>{{1, 208}, {39, 38}}</string>
 			<key>offset</key>
 			<string>{0, 0}</string>
 			<key>rotated</key>
@@ -146,6 +146,19 @@
 			<string>{{0, 0}, {40, 40}}</string>
 			<key>sourceSize</key>
 			<string>{40, 40}</string>
+		</dict>
+		<key>crystals/sparkle.png</key>
+		<dict>
+			<key>frame</key>
+			<string>{{41, 196}, {15, 15}}</string>
+			<key>offset</key>
+			<string>{0, 0}</string>
+			<key>rotated</key>
+			<false/>
+			<key>sourceColorRect</key>
+			<string>{{0, 0}, {15, 15}}</string>
+			<key>sourceSize</key>
+			<string>{16, 16}</string>
 		</dict>
 	</dict>
 	<key>metadata</key>

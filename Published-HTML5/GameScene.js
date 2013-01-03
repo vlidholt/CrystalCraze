@@ -620,7 +620,7 @@ function updateSparkle()
 
 	if (gemSprite.getChildren().length > 0) return;
 
-	sprite = cc.Sprite.create("gamescene/sparkle.png");
+	sprite = cc.Sprite.createWithSpriteFrameName("crystals/sparkle.png");
 	sprite.runAction(cc.RepeatForever.create(cc.RotateBy.create(3, 360)));
 
 	sprite.setOpacity(0);
@@ -727,10 +727,23 @@ GameScene.prototype.onDidLoadFromCCB = function()
     this.rootNode.schedule(this.rootNode.onUpdate);
 
     // TODO: Make into batch node
-    gGameLayer = cc.Node.create();
+    
+    if (cc.config.platform == "mobile")
+    {
+    	cc.log("On mobile");
+    	gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
+    	gGameLayer = cc.SpriteBatchNode.create("crystals.pvr.gz");
+    }
+    else
+    {
+    	cc.log("On web");
+    	gParticleLayer = cc.Node.create();
+    	gGameLayer = cc.Node.create();
+    }
+
     gGameLayer.setContentSize(this.gameLayer.getContentSize());
     //gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
-    gParticleLayer = cc.Node.create();
+    //gParticleLayer = cc.Node.create();
     gHintLayer = cc.Node.create();
     gShimmerLayer = cc.Node.create();
     gEffectsLayer = cc.Node.create();

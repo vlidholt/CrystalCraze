@@ -103,6 +103,6 @@
 	<key>tangentialAcceleration</key>
 	<real>0.0</real>
 	<key>textureFileName</key>
-	<string>taken-gem.png.png</string>
+	<string>taken-gem.png</string>
 </dict>
 </plist>
