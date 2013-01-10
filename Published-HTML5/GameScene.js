@@ -198,7 +198,7 @@ function removeConnectedGems(x, y)
 	}
 	else
 	{
-		gAudioEngine.playEffect("sounds/miss.caf");
+		gAudioEngine.playEffect("sounds/miss.wav");
 	}
 
 	var d = new Date();
@@ -219,7 +219,7 @@ function activatePowerUp(x, y)
 	if (gBoard[idx] == kBoardTypePup0)
 	{
 		// Activate bomb
-		gAudioEngine.playEffect("sounds/powerup.caf");
+		gAudioEngine.playEffect("sounds/powerup.wav");
 
 		removedGems = true;
 
@@ -728,7 +728,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 
     // TODO: Make into batch node
     
-    if (cc.config.platform == "mobile")
+    if ("opengl" in sys.capabilities) 
     {
     	cc.log("On mobile");
     	gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
@@ -786,7 +786,7 @@ GameScene.prototype.onTouchesBegan = function(touches, event)
 			// Player did a valid move
 			var sound = gNumConsecutiveGems;
 			if (sound > 4) sound = 4;
-			gAudioEngine.playEffect("sounds/gem-"+sound+".caf");
+			gAudioEngine.playEffect("sounds/gem-"+sound+".wav");
 
 			gNumConsecutiveGems++;
 		}
@@ -849,7 +849,7 @@ GameScene.prototype.onUpdate = function(dt)
 					// The gem hit the ground or a fixed gem
 					if (!gemLanded)
 					{
-						gAudioEngine.playEffect("sounds/tap-"+Math.floor(Math.random()*4)+".caf");
+						gAudioEngine.playEffect("sounds/tap-"+Math.floor(Math.random()*4)+".wav");
 						gemLanded = true;
 					}
 
@@ -924,7 +924,7 @@ GameScene.prototype.onUpdate = function(dt)
 		// Check if timer sound should be played
 		if (timeLeft < 6.6 && !gEndTimerStarted)
 		{
-			gAudioEngine.playEffect("sounds/timer.caf");
+			gAudioEngine.playEffect("sounds/timer.wav");
 			gEndTimerStarted = true;
 		}
 
@@ -936,7 +936,7 @@ GameScene.prototype.onUpdate = function(dt)
 			gIsGameOver = true;
 			//gAudioEngine.stopAllEffects();
 			cc.log("stopAllEffects not working!");
-			gAudioEngine.playEffect("sounds/endgame.caf");
+			gAudioEngine.playEffect("sounds/endgame.wav");
 			gLastScore = gScore;
 		}
 		else if (currentTime - gLastMoveTime > kDelayBeforeHint && !gIsDisplayingHint)
@@ -967,5 +967,5 @@ GameScene.prototype.onPauseClicked = function(dt)
 	gIsGameOver = true;
 	//gAudioEngine.stopAllEffects();
 	cc.log("stopAllEffects not working!");
-	gAudioEngine.playEffect("sounds/endgame.caf");
+	gAudioEngine.playEffect("sounds/endgame.wav");
 };
