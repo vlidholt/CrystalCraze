@@ -728,7 +728,7 @@ GameScene.prototype.onDidLoadFromCCB = function()
 
     // TODO: Make into batch node
     
-    if (cc.config.platform == "mobile")
+    if (sys.platform == "mobile")
     {
     	cc.log("On mobile");
     	gParticleLayer = cc.ParticleBatchNode.create("particles/taken-gem.png", 250);
