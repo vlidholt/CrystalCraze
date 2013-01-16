@@ -61,7 +61,7 @@ MainScene.prototype.onPressAbout = function()
 {
 	gAudioEngine.playEffect("sounds/click.wav");
 
-	var aboutNode = cc.BuilderReader.load("AboutScene");
+	var aboutNode = cc.BuilderReader.load("AboutScene.ccbi");
 	this.rootNode.addChild(aboutNode, 10);
 };
 
